@@ -205,7 +205,3 @@ graph = Graph()
 
 # TEST FILE LOADING
 graph.load_graph('map.json')
-## print(json.dumps(graph.rooms))
-
-path  = graph.bfs(0, 180)
-print("This will be the exact route to go to that destination", path)
