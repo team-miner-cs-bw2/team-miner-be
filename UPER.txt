@@ -1,0 +1,27 @@
+UPER
+
+1. Build Map
+--> either manually build it through insomnia or do an algo
+
+--> Things to consider:
+
+You will be able to progress with future tasks much more quickly if you log ALL room info during your
+initial traversal / map building (not just room numbers & exits)
+
+^ this suggest to log the map as a whole to be more efficient?
+
+2. Wise Explorer
+
+--> Things to consider: (Graphutil.py)
+An accurate map is the wise explorer's best friend. By predicting the ID of the destination room, you can reduce your action cooldown by 50%.
+
+^ this suggest that we need to build a path using Graph specifically DFS (which search for the shortest node)
+it will be efficient in traversing the map once there's a path already just like our sprint challenge?
+
+
+3.  Treasure
+
+You may have noticed the small treasure lying in the room
+
+--> Things to consider:
+To traverse the player we need an algo in searching for the rooms we might use BFS(to search for rooms for the player to traverse?)
