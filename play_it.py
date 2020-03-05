@@ -13,7 +13,7 @@ URL = 'https://lambda-treasure-hunt.herokuapp.com/'
 class GamePlayer:
     """Plays the Lambda Treasure Hunt game.
 
-    Once in pipenv shell:
+    # Once in pipenv shell:
     >>> from play_it import GamePlayer
     >>> game = GamePlayer()
     >>> game.auto_play()
@@ -22,7 +22,7 @@ class GamePlayer:
     """
 
     def __init__(self):
-        self.key = 'acd50be286c9bd90d6f6b57922a3493725f26c28'
+        self.key = '8d2465743676ed3a8cc3d8841b5d5b7ab384d8ed'
         self.auth = {"Authorization": f"Token {self.key}",
                      "Content-Type": "application/json"}
         self.cooldown = 0
@@ -44,7 +44,8 @@ class GamePlayer:
         self.flight = False
         self.dash_ = False
         self.warp_ = False
-        self.name_changed = True
+        self.name_changed = False
+        self.minimum_gold = False
         self.items_ = deque()
         self.places = {'shop': {'room_id': 1},
                        'flight': {'room_id': 22},
@@ -67,9 +68,11 @@ class GamePlayer:
             pass
         try:
             if http == 'get':
-                response = requests.get(URL + suffix, headers=header, data=data)
+                response = requests.get(
+                    URL + suffix, headers=header, data=data)
             elif http == 'post':
-                response = requests.post(URL + suffix, headers=header, json=data)
+                response = requests.post(
+                    URL + suffix, headers=header, json=data)
         except response.raise_for_status():  # Raise for 4xx or 5xx response.
             self.auto_play()
         response = response.json()
@@ -91,7 +94,8 @@ class GamePlayer:
     def initialize_player(self) -> None:
         """Create player in server database and initialize world map."""
         header = {"Authorization": f"Token {self.key}"}
-        new_room = self.make_request(suffix='api/adv/init/', header=header, http='get')
+        new_room = self.make_request(
+            suffix='api/adv/init/', header=header, http='get')
         print('new room', new_room)
         self.current_room = new_room['room_id']
         # If current room hasn't been saved to self.world, do that.
@@ -173,7 +177,8 @@ class GamePlayer:
             if all([self.world[self.current_room][f'to_{exit_}'] is not None for exit_ in exits]):
                 return
             # Get all unexplored exits.
-            open_exits = [d for d in exits if self.world[self.current_room][f'to_{d}'] is None]
+            open_exits = [
+                d for d in exits if self.world[self.current_room][f'to_{d}'] is None]
             # Take the first open path.
             open_exit = open_exits[0]
             fly = False
@@ -255,7 +260,8 @@ class GamePlayer:
         suffix = 'api/adv/move/'
         if fly:
             suffix = 'api/adv/fly/'
-        new_room = self.make_request(suffix=suffix, header=self.auth, data=data, http='post')
+        new_room = self.make_request(
+            suffix=suffix, header=self.auth, data=data, http='post')
         self.print_status_info(new_room)
         self.save_place(new_room)
         self.find_items(new_room)
@@ -272,7 +278,7 @@ class GamePlayer:
         print(f'\nIn room {current_room["room_id"]}. \nCurrent cooldown: {self.cooldown}'
               f'\nInventory: {", ".join([item["name"][:-9] for item in self.items_]) if self.items_ else "None"} '
               f'\nPlayers in room: {", ".join(current_room["players"]) if current_room["players"] else "None"} '
-              # f'\nGold: {self.gold}, Lambda Coins: {self.balance_}, Snitches: {self.snitches}'
+              f'\nGold: {self.gold}, Lambda Coins: {self.balance_}, Snitches: {self.snitches}'
               f'\nEncumbrance: {self.encumbrance}, Strength: {self.strength}')
 
     def auto_play(self) -> None:
@@ -285,6 +291,7 @@ class GamePlayer:
         """Move to the shop and sell all the treasure."""
         print('\nGoing to sell this treasure...')
         path = self.find_path(int(self.places['shop']['room_id']))
+
         if self.dash_:
             self.dash(path)
         else:
@@ -381,31 +388,47 @@ class GamePlayer:
          Do it forever.
          """
         while True:
-            # Change name if not already done.
-            if self.places['pirate']['room_id'] and not self.name_changed and self.gold >= 1000:
-                self.name_change()
-            # Pray at the dash shrine once.
-            if self.places['dash']['room_id'] and self.name_changed and not self.dash_:
-                self.to_dash()
-            # Pray at the flight shrine once.
-            if self.places['flight']['room_id'] and self.name_changed and not self.flight:
-                self.to_flight()
-            # Pray at the warp shrine once.
-            if self.places['warp']['room_id'] and self.name_changed and not self.warp:
-                self.to_warp()
-            # Do every loop:
-            # Sell treasure.
-            if self.encumbered and self.places['shop']['room_id']:
-                self.sell_things()
-            # Go to random rooms to collect treasure until you can carry no more.
-            if not self.encumbered:
-                self.rand_room()
-            # Go get a golden snitch.
-            if self.encumbered and self.warp_:
-                self.dimensional_traveler()
-            # Mine lambda a coin.
-            if self.encumbered and self.places['well']['room_id'] and self.name_changed:
-                self.coin_dash()
+
+            if self.name_changed == False:
+                # # Change name if not already done.
+                if self.gold <= 1000:
+                    self.rand_room()
+                # Do every loop:
+                # Sell treasure.
+                if self.encumbered and self.places['shop']['room_id'] or self.encumbrance >= 5:
+                    self.sell_things()
+                    self.minimum_gold = True
+
+                if self.gold >= 1000 and self.minimum_gold == True:
+                    if not self.name_changed and self.gold >= 1000:
+                        self.name_change()
+                        print("at the name change")
+
+                # RUN THIS IF YOU HAVE A NAME ALREADY
+            elif self.name_changed == True:
+                if self.gold >= 1000 and self.minimum_gold == True:
+                    # Pray at the dash shrine once.
+                    if self.places['dash']['room_id'] and self.name_changed and not self.dash_:
+                        self.to_dash()
+                    # Pray at the flight shrine once.
+                    if self.places['flight']['room_id'] and self.name_changed and not self.flight:
+                        self.to_flight()
+                    # Pray at the warp shrine once.
+                    if self.places['warp']['room_id'] and self.name_changed and not self.warp:
+                        self.to_warp()
+                    # Do every loop:
+                    # Sell treasure.
+                    if self.encumbered and self.places['shop']['room_id']:
+                        self.sell_things()
+                    # Go to random rooms to collect treasure until you can carry no more.
+                    if not self.encumbered:
+                        self.rand_room()
+                    # Go get a golden snitch.
+                    if self.encumbered and self.warp_:
+                        self.dimensional_traveler()
+                    # Mine lambda a coin.
+                    if self.encumbered and self.places['well']['room_id'] and self.name_changed:
+                        self.coin_dash()
 
     def take(self, item: str) -> None:
         """Take <item> from current room if weight limit won't be exceeded."""
@@ -414,7 +437,8 @@ class GamePlayer:
         if self.warped:
             suffix = 'api/adv/take/'
             data = {"name": 'golden snitch'}
-            self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+            self.make_request(suffix=suffix, data=data,
+                              header=self.auth, http='post')
         if not self.warped:
             # Get item dict and attributes.
             item_ = self.examine(item)
@@ -443,7 +467,8 @@ class GamePlayer:
         """Take item, call wear() if item is wearable, add treasure to inventory."""
         suffix = 'api/adv/take/'
         data = {"name": f"{item['name']}"}
-        response = self.make_request(suffix=suffix, http='post', data=data, header=self.auth)
+        response = self.make_request(
+            suffix=suffix, http='post', data=data, header=self.auth)
         self.encumbrance += item['weight']
         if wear:
             self.check_fit(item)
@@ -455,7 +480,8 @@ class GamePlayer:
     def wear(self, item: dict) -> dict:
         suffix = 'api/adv/wear/'
         data = {"name": item['name']}
-        response = self.make_request(suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix, data=data, header=self.auth, http='post')
         self.update_clothes(item)
         return response
 
@@ -490,27 +516,31 @@ class GamePlayer:
         """Examine an <item>."""
         suffix = 'api/adv/examine/'
         data = {"name": f"{item}"}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         return response
 
     def pray(self) -> dict:
         """Pray at a shrine."""
         suffix = 'api/adv/pray/'
-        response = self.make_request(suffix=suffix, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, header=self.auth, http='post')
         return response
 
     def remove(self, item: str) -> dict:
         """Remove the <item>."""
         suffix = 'api/adv/undress/'
         data = {"name": item}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         return response
 
     def drop(self, item: str) -> dict:
         """Drop the <item>."""
         suffix = 'api/adv/drop/'
         data = {"name": item}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         # Remove item from inventory.
         while any([item_['name'] == item for item_ in self.items_]):
             thing = self.items_.popleft()
@@ -528,9 +558,11 @@ class GamePlayer:
             if item['itemtype'] == 'TREASURE':
                 print(f'Selling {item["name"]}')
                 data = {"name": item["name"]}
-                self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+                self.make_request(suffix=suffix, data=data,
+                                  header=self.auth, http='post')
                 data = {"name": item["name"], "confirm": "yes"}
-                self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+                self.make_request(suffix=suffix, data=data,
+                                  header=self.auth, http='post')
             else:
                 self.items_.append(item)
         self.status()
@@ -538,7 +570,8 @@ class GamePlayer:
     def status(self) -> dict:
         """Get the player's current status, set instance variables."""
         suffix = 'api/adv/status/'
-        response = self.make_request(suffix=suffix, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, header=self.auth, http='post')
         # Update relevant instance variables.
         self.strength = int(response['strength'])
         self.encumbrance = int(response['encumbrance'])
@@ -560,8 +593,9 @@ class GamePlayer:
     def change_name(self) -> dict:
         """Ask the name changing pirate to change your name."""
         suffix = 'api/adv/change_name/'
-        data = {"name": "[ANN]", "confirm": "aye"}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        data = {"name": "[TayBic]", "confirm": "aye"}
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         return response
 
     def dash(self, path: list) -> None:
@@ -608,7 +642,8 @@ class GamePlayer:
             data = {"direction": f"{start_direction}",
                     "num_rooms": f"{len(rooms)}",
                     "next_room_ids": f"{','.join(map(str, rooms))}"}
-            new_room = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+            new_room = self.make_request(
+                suffix=suffix, data=data, header=self.auth, http='post')
         else:
             for room in rooms:
                 new_room = self.move(start_direction, room, fly=True)
@@ -630,7 +665,8 @@ class GamePlayer:
         cpu = CPU()
         cpu.load()
         cpu.run()
-        next_string = cpu.next_room  # CPU modified to output strings to next_room attribute.
+        # CPU modified to output strings to next_room attribute.
+        next_string = cpu.next_room
         self.room_from_clue(next_string)
 
     def room_from_clue(self, string: str) -> None:
@@ -643,7 +679,8 @@ class GamePlayer:
     def warp(self) -> dict:
         """Warp to alternate dimension."""
         suffix = 'api/adv/warp/'
-        response = self.make_request(suffix=suffix, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, header=self.auth, http='post')
         self.warped = not self.warped
         return response
 
@@ -651,7 +688,8 @@ class GamePlayer:
         """Use machine to turn treasure into clothing."""
         suffix = 'api/adv/transmogrify/'
         data = {"name": item}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         return response
 
     def proof(self) -> None:
@@ -676,7 +714,8 @@ class GamePlayer:
                   difficulty: int) -> None:
         """Generate new proof to mine new block."""
         x = 0
-        print(f'Finding proof...\nlast_proof: {last_proof}, difficulty: {difficulty}')
+        print(
+            f'Finding proof...\nlast_proof: {last_proof}, difficulty: {difficulty}')
         while True:
             string = (str(last_proof) + str(x)).encode()
             if self.is_proof(string, difficulty):
@@ -689,7 +728,8 @@ class GamePlayer:
         """Submit <new_proof> to mine a new lambda coin."""
         suffix = 'api/bc/mine/'
         data = {"proof": new_proof}
-        response = self.make_request(suffix=suffix, data=data, header=self.auth, http='post')
+        response = self.make_request(
+            suffix=suffix, data=data, header=self.auth, http='post')
         self.balance()
         return response
 
