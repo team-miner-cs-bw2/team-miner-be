@@ -2,27 +2,23 @@ import pickle
 import random
 import re
 import requests
+import os
 from collections import deque
 from cpu import CPU
 from datetime import datetime
 from hashlib import sha256
+from dotenv import load_dotenv
 
-URL = 'https://lambda-treasure-hunt.herokuapp.com/'
+
+load_dotenv()
+URL = os.getenv("URL")
+API_KEY = os.getenv("API_KEY")
+NAME = os.getenv("NAME")
 
 
 class GamePlayer:
-    """Plays the Lambda Treasure Hunt game.
-
-    # Once in pipenv shell:
-    >>> from play_it import GamePlayer
-    >>> game = GamePlayer()
-    >>> game.auto_play()
-
-    See __init__ for important info on initializing player after server disconnect.
-    """
-
     def __init__(self):
-        self.key = '8d2465743676ed3a8cc3d8841b5d5b7ab384d8ed'
+        self.key = API_KEY
         self.auth = {"Authorization": f"Token {self.key}",
                      "Content-Type": "application/json"}
         self.cooldown = 0
@@ -275,7 +271,7 @@ class GamePlayer:
 
     def print_status_info(self, current_room: dict) -> None:
         """Print out info about player and <current room>."""
-        print(f'\nIn room {current_room["room_id"]}. \nCurrent cooldown: {self.cooldown}'
+        print(f'\nHi {NAME}, you are in room {current_room["room_id"]}. \nCurrent cooldown: {self.cooldown}'
               f'\nInventory: {", ".join([item["name"][:-9] for item in self.items_]) if self.items_ else "None"} '
               f'\nPlayers in room: {", ".join(current_room["players"]) if current_room["players"] else "None"} '
               f'\nGold: {self.gold}, Lambda Coins: {self.balance_}, Snitches: {self.snitches}'
@@ -593,7 +589,7 @@ class GamePlayer:
     def change_name(self) -> dict:
         """Ask the name changing pirate to change your name."""
         suffix = 'api/adv/change_name/'
-        data = {"name": "[TayBic]", "confirm": "aye"}
+        data = {"name": NAME, "confirm": "aye"}
         response = self.make_request(
             suffix=suffix, data=data, header=self.auth, http='post')
         return response
